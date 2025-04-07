@@ -8,10 +8,11 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function login(Request $request){
+    public function login(Request $request)
+    {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -22,13 +23,13 @@ class AuthController extends Controller
 
             return response()->json([
                 'token' => $token,
-                'user' => $user
+                'user' => $user,
             ], 200);
         }
 
         return response()->json([
             'status' => 'error',
-            'message' => 'Invalid credentials'
+            'message' => 'Invalid credentials',
         ], 404);
     }
 
@@ -46,7 +47,6 @@ class AuthController extends Controller
     {
         //
     }
-
 
     public function resetPassword(Request $request)
     {

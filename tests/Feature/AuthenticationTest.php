@@ -3,7 +3,7 @@
 it('can login', function () {
     $response = $this->post('/api/login', [
         'email' => 'test@example.com',
-        'password' => 'password'
+        'password' => 'password',
     ]);
 
     expect($response->status())->toBe(200)
