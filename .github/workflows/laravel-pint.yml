@@ -1,12 +1,14 @@
 name: Laravel Pint
 
 on:
-  pull_request
+  pull_request:
+    types:
+      - closed
 
 jobs:
   laravel-pint:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
 
     steps:
       - name: Checkout Code
@@ -32,5 +34,5 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git add .
-          git commit -m 'Pint'
+          git commit -m 'Pint' || exit 0
           git push
