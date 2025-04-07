@@ -5,6 +5,4 @@ use App\Http\Controllers\Api\AuthController;
 
 Route::post('login', [AuthController::class, 'login']);
 
-// some bad practice code
-// more bad practice code
-// more bad practice code
+// some good practice code
