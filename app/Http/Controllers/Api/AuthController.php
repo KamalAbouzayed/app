@@ -32,23 +32,19 @@ class AuthController extends Controller
         ], 404);
     }
 
-    public function logout()
-    {
+    public function logout(){
         //
     }
 
-    public function forgetPassword(Request $request)
-    {
+    public function forgetPassword(Request $request){
         //
     }
 
-    public function verifyCode(Request $request)
-    {
+    public function verifyCode(Request $request){
         //
     }
 
-    public function resetPassword(Request $request)
-    {
+    public function resetPassword(Request $request){
         //
     }
 }
