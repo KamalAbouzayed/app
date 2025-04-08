@@ -34,55 +34,67 @@ jobs:
         run: |
           composer install --no-interaction --prefer-dist --no-progress
           composer require larastan/larastan --dev --no-interaction
+          sudo apt-get install jq  # Install jq for JSON parsing
 
       - name: Create Larastan Config
         run: |
           if [ ! -f phpstan.neon ]; then
             echo "includes:
               - ./vendor/larastan/larastan/extension.neon
-              - ./vendor/nesbot/carbon/extension.neon
 
             parameters:
               paths:
                 - app/
-
               level: 8
-              checkMissingIterableValueType: false" >> phpstan.neon
+              checkMissingIterableValueType: false" > phpstan.neon
           fi
 
-      - name: Run Larastan
+      - name: Run Larastan and Save Results
+        id: larastan
         run: |
-          # Run analysis and capture output
-          OUTPUT=$(vendor/bin/phpstan analyse --error-format=json 2>&1 || true)
-          echo "RESULTS=$(echo $OUTPUT | jq -c .)" >> $GITHUB_ENV
+          # Run analysis and save output to file
+          vendor/bin/phpstan analyse --error-format=json > results.json || echo '{"errors":[]}' > results.json
+          echo "results=$(cat results.json | jq -c .)" >> $GITHUB_OUTPUT
 
-      - name: Process and Comment Results
-        if: always()
+      - name: Comment Results
         uses: actions/github-script@v7
+        env:
+          RESULTS: ${{ steps.larastan.outputs.results }}
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const results = process.env.RESULTS ? JSON.parse(process.env.RESULTS) : {errors: []};
-            let comment = '## Larastan Results\n\n';
+            try {
+              const results = process.env.RESULTS ? JSON.parse(process.env.RESULTS) : {errors: []};
+              let comment = '## Larastan Results\n\n';
 
-            if (results.errors && results.errors.length > 0) {
-              comment += 'Found issues:\n```\n';
-              results.errors.slice(0, 5).forEach(error => {
-                comment += `${error.message}\n`;
-                if (error.location) {
-                  comment += `at ${error.location.path}:${error.location.start.line}\n\n`;
+              if (results.errors && results.errors.length > 0) {
+                comment += '❌ Found issues:\n\n';
+                results.errors.slice(0, 10).forEach(error => {
+                  comment += `### ${error.message}\n`;
+                  if (error.location) {
+                    comment += `- **File**: ${error.location.path}\n`;
+                    comment += `- **Line**: ${error.location.start.line}\n\n`;
+                  }
+                });
+                if (results.errors.length > 10) {
+                  comment += `\n...and ${results.errors.length - 10} more issues.`;
                 }
-              });
-              comment += '```\n';
-              if (results.errors.length > 5) {
-                comment += `Plus ${results.errors.length - 5} more issues...`;
+              } else {
+                comment += '✅ No issues found!';
               }
-            } else {
-              comment += '✅ No issues found!';
-            }
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              core.error('Failed to process results: ' + error.message);
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '⚠️ Failed to process Larastan results. Check workflow logs for details.'
+              });
+            }
