@@ -1,0 +1,58 @@
+name: Static Analysis with Larastan
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  larastan:
+    name: Static Analysis with Larastan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, fileinfo, dom, curl
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          composer require larastan/larastan --dev --no-interaction
+
+      - name: Create Larastan Config
+        run: |
+          if [ ! -f phpstan.neon ]; then
+            echo "includes:
+              - ./vendor/larastan/larastan/extension.neon
+              - ./vendor/nesbot/carbon/extension.neon
+
+            parameters:
+              paths:
+                - app/
+
+              level: 8
+              checkMissingIterableValueType: false" >> phpstan.neon
+          fi
+
+      - name: Run Larastan
+        run: vendor/bin/phpstan analyse --error-format=github
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: larastan-results
+          path: |
+            phpstan-report.txt

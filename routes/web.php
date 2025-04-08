@@ -4,7 +4,6 @@ use App\Events\MessageSent;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-
     broadcast(new MessageSent('Hello from Laravel Reverb!'));
 
     return view('welcome');
