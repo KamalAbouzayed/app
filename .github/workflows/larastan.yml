@@ -51,7 +51,10 @@ jobs:
           fi
 
       - name: Run Larastan
-        run: vendor/bin/phpstan analyse --error-format=github
+        run: |
+          # Run analysis and capture output
+          OUTPUT=$(vendor/bin/phpstan analyse --error-format=json 2>&1 || true)
+          echo "RESULTS=$(echo $OUTPUT | jq -c .)" >> $GITHUB_ENV
 
       - name: Process and Comment Results
         if: always()
